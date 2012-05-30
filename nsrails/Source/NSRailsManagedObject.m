@@ -563,7 +563,9 @@ NSRailsSync(*);
 								}
 							}
 							
-							[newArray addObject:decodedElement];
+              if (decodedElement != nil) {
+                [newArray addObject:decodedElement];
+              }
 						}
             NSMutableOrderedSet *s = [NSMutableOrderedSet orderedSetWithArray:newArray];
             decodedObj = s;

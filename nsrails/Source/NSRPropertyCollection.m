@@ -239,7 +239,7 @@
 					{
 						NSRRaiseSyncError(@"Failed to find class '%@', declared as class for nested property '%@' of class '%@'.",nestedModel,objcProp,class);
 					}
-					else if (![nestedClass isSubclassOfClass:[NSRailsModel class]] && !explicitDate)
+					else if (!([nestedClass isSubclassOfClass:[NSRailsModel class]] || [nestedClass isSubclassOfClass:[NSRailsManagedObject class]])  && !explicitDate)
 					{
 						NSRRaiseSyncError(@"'%@' was declared as the class for the nested property '%@' of class '%@', but '%@' is not a subclass of NSRailsModel.",nestedModel,objcProp, NSStringFromClass(class),nestedModel);
 					}
