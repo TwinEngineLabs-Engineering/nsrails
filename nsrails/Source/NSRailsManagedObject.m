@@ -316,23 +316,29 @@ NSRailsSync(*);
 {
 #pragma warning - "Altered here"
 	//make a new class to be entered for this property/array (we can assume it subclasses NSRailsModel)
-	NSRailsManagedObject *model = [[NSClassFromString(classN) alloc] initWithRemoteDictionary:dict];
+  
+  NSString *kPath = [NSString stringWithFormat:@"%@.%@_id", [classN lowercaseString], [classN lowercaseString]];
+  NSNumber *objId = [dict valueForKeyPath:kPath];
+  
+  NSRailsManagedObject *model = [NSClassFromString(classN) findExistingModelWithPrimaryKeyAttributeValue:objId];
+  [model setPropertiesUsingRemoteDictionary:dict];
 	
 	//see if we can assign an association to its parent (self)
-	NSString *parentModelName = [[self class] masterModelName];
-	NSArray *properties = [[model propertyCollection] objcPropertiesForRemoteEquivalent:parentModelName 
-																			autoinflect:[self getRelevantConfig].autoinflectsPropertyNames];
-	
-	for (NSRProperty *property in properties)
-	{
-		//only assign me to the child if it has me defined as a property and it's marked as nested to me
-		if (property.retrievable &&
-			[property.nestedClass isEqualToString:[self.class description]])
-		{
-			SEL setter = [[model class] setterForProperty:property.name];
-			[model performSelector:setter withObject:self];
-		}
-	}
+    NSString *parentModelName = [[self class] masterModelName];
+    NSArray *properties = [[model propertyCollection] objcPropertiesForRemoteEquivalent:parentModelName 
+                                                                            autoinflect:[self getRelevantConfig].autoinflectsPropertyNames];
+    
+    for (NSRProperty *property in properties)
+    {
+      //only assign me to the child if it has me defined as a property and it's marked as nested to me
+      if (property.retrievable &&
+          [property.nestedClass isEqualToString:[self.class description]])
+      {
+        SEL setter = [[model class] setterForProperty:property.name];
+        [model performSelector:setter withObject:self];
+      }
+    }
+    
 	
 	return model;
 }
@@ -535,7 +541,8 @@ NSRailsSync(*);
 								NSUInteger idx = [previousVal indexOfObjectPassingTest:
 												  ^BOOL(NSRailsManagedObject *obj, NSUInteger idx, BOOL *stop) 
 												  {
-													  if ([obj.remoteID isEqualToNumber:[railsElement objectForKey:@"id"]])
+                            NSString *kp = [obj.class.description lowercaseString];
+                            if ([obj.remoteID isEqualToNumber:[railsElement valueForKeyPath:[NSString stringWithFormat:@"%@.%@_id", kp, kp]]])
 													  {
 														  if (stop)
 															  *stop = YES;
