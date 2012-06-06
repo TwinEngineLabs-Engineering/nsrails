@@ -147,8 +147,9 @@
  @param completionBlock Block to be executed when the request is complete.
  */
 + (void) remoteAllAsync:(NSRGetAllCompletionBlock)completionBlock;
-
-
++ (void) remoteAllAsync:(NSRGetAllCompletionBlock)completionBlock withParams:(NSDictionary *)params;
++ (void) remoteGET:(NSString *)customRESTMethod withParams:(NSDictionary *)params async:(NSRHTTPCompletionBlock)completionBlock;
++ (void) remoteRequest:(NSString *)httpVerb method:(NSString *)customRESTMethod body:(NSString *)body withParams:(NSDictionary *)params async:(NSRHTTPCompletionBlock)completionBlock;
 
 /**
  Returns an instance of receiver's class corresponding to the remote object with that ID.
@@ -202,6 +203,8 @@
  @param customRESTMethod Custom REST method to be called on the subclass's controller. If `nil`, will route to index.
  @param completionBlock Block to be executed when the request is complete.
  */
+// Params methods
+
 + (void) remoteGET:(NSString *)customRESTMethod async:(NSRHTTPCompletionBlock)completionBlock;
 
 
@@ -671,4 +674,3 @@
 + (NSString *) NSRailsUseConfigURL { return url; } \
 + (NSString *) NSRailsUseConfigUsername { return user; } \
 + (NSString *) NSRailsUseConfigPassword { return pass; }
-

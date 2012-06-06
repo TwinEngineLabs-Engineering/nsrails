@@ -1211,7 +1211,7 @@ NSRailsSync(*);
         if (![self.managedObjectContext save:&error]) {
           NSLog(@"NSRailsManagedObject instance %@: failed to save core data with error: %@", NSStringFromClass([self class]), [error localizedDescription]);
         } else {
-          NSLog(@"NSRailsManagedObject instance %@: successfully saved core data!", NSStringFromClass([self class]));
+//          NSLog(@"NSRailsManagedObject instance %@: successfully saved core data!", NSStringFromClass([self class]));
         }
     }
     @catch (NSException *exception) {
@@ -1230,6 +1230,47 @@ NSRailsSync(*);
   if (self.remoteID == nil && primaryKeyValue != nil) {
     self.remoteID = primaryKeyValue;
   }
+}
+
+# pragma mark - Overrides with params
+
++ (void) remoteRequest:(NSString *)httpVerb method:(NSString *)customRESTMethod body:(NSString *)body withParams:(NSDictionary *)params async:(NSRHTTPCompletionBlock)completionBlock
+{
+	NSString *route = [NSString stringWithFormat:@"%@?", [self routeForControllerMethod:customRESTMethod]];
+  int i = 0;
+  for (NSString *key in params) {
+    id val = [params objectForKey:key];
+    if (i == 0) {
+      route = [route stringByAppendingFormat:@"%@=%@", key, val];
+    } else {
+      route = [route stringByAppendingFormat:@"&%@=%@", key, val];
+    }
+    i++;
+  }
+	[[self getRelevantConfig] makeRequest:httpVerb requestBody:body route:route sync:nil orAsync:completionBlock];
+}
+
++ (void) remoteGET:(NSString *)customRESTMethod withParams:(NSDictionary *)params async:(NSRHTTPCompletionBlock)completionBlock
+{
+	[self remoteRequest:@"GET" method:customRESTMethod body:nil withParams:params async:completionBlock];
+}
+
++ (void) remoteAllAsync:(NSRGetAllCompletionBlock)completionBlock withParams:(NSDictionary *)params
+{
+	[self remoteGET:nil withParams:params async:
+	 ^(NSString *result, NSError *error) 
+	 {
+		 if (!result)
+		 {
+			 completionBlock(nil, error);
+		 }
+		 else
+		 {
+			 //make an array from the result returned async, and we can reuse the same error ptr (since we know it's nil)
+			 NSArray *array = [self arrayOfModelsFromJSON:result error:&error];
+			 completionBlock(array,error);
+		 }
+	 }];
 }
 
 @end

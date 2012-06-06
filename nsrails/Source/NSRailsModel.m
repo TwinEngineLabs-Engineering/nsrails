@@ -830,6 +830,11 @@ NSRailsSync(*);
 	[self remoteRequest:@"GET" method:customRESTMethod body:nil async:completionBlock];
 }
 
++ (void) remoteGET:(NSString *)customRESTMethod withParams:(NSDictionary *)params async:(NSRHTTPCompletionBlock)completionBlock
+{
+	[self remoteRequest:@"GET" method:customRESTMethod body:nil withParams:params async:completionBlock];
+}
+
 
 
 #pragma mark - External stuff (CRUD)
@@ -996,6 +1001,24 @@ NSRailsSync(*);
 + (void) remoteAllAsync:(NSRGetAllCompletionBlock)completionBlock
 {
 	[self remoteGET:nil async:
+	 ^(NSString *result, NSError *error) 
+	 {
+		 if (!result)
+		 {
+			 completionBlock(nil, error);
+		 }
+		 else
+		 {
+			 //make an array from the result returned async, and we can reuse the same error ptr (since we know it's nil)
+			 NSArray *array = [self arrayOfModelsFromJSON:result error:&error];
+			 completionBlock(array,error);
+		 }
+	 }];
+}
+
++ (void) remoteAllAsync:(NSRGetAllCompletionBlock)completionBlock withParams:(NSDictionary *)params
+{
+	[self remoteGET:nil withParams: params async:
 	 ^(NSString *result, NSError *error) 
 	 {
 		 if (!result)

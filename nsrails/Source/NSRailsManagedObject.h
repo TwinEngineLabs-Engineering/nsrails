@@ -152,7 +152,9 @@ static NSString *NSRailsSaveCoreDataNotification = @"should_save_core_data";
  @param completionBlock Block to be executed when the request is complete.
  */
 + (void) remoteAllAsync:(NSRGetAllCompletionBlock)completionBlock;
-
++ (void) remoteAllAsync:(NSRGetAllCompletionBlock)completionBlock withParams:(NSDictionary *)params;
++ (void) remoteGET:(NSString *)customRESTMethod withParams:(NSDictionary *)params async:(NSRHTTPCompletionBlock)completionBlock;
++ (void) remoteRequest:(NSString *)httpVerb method:(NSString *)customRESTMethod body:(NSString *)body withParams:(NSDictionary *)params async:(NSRHTTPCompletionBlock)completionBlock;
 
 
 /**
