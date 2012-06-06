@@ -37,8 +37,8 @@
 //Logging
 /////////
                      //undefined, NSRails will log nothing
-//#define NSRLog 1   //As 1, NSRails will log HTTP verbs with their outgoing URLs and any server errors being returned.
-#define NSRLog 2     //As 2, NSRails will also log any JSON going out/coming in.
+#define NSRLog 1   //As 1, NSRails will log HTTP verbs with their outgoing URLs and any server errors being returned.
+//#define NSRLog 2     //As 2, NSRails will also log any JSON going out/coming in.
 
 #if NSRLog > 0
 #define NSRLogError(x)	NSLog(@"%@",x);

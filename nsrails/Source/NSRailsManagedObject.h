@@ -635,6 +635,10 @@ static NSString *NSRailsSaveCoreDataNotification = @"should_save_core_data";
  */
 - (void)saveContext;
 
++ (NSString *) routeForControllerMethod:(NSString *)customRESTMethod;
++ (NSArray *) arrayOfModelsFromJSON:(NSString *)json error:(NSError **)error;
++ (NSRConfig *) getRelevantConfig;
+
 @end
 
 
