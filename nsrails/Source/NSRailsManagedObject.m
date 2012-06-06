@@ -57,9 +57,6 @@
 + (NSRPropertyCollection *) propertyCollection;
 - (NSRPropertyCollection *) propertyCollection;
 
-+ (void) saveContext;
-- (void) saveContext;
-
 - (NSDictionary *) dictionaryOfRemotePropertiesShallow:(BOOL)shallow;
 - (void) testIfCanSendInstanceRequest;
 + (NSRailsManagedObject *)findFirstObjectByAttribute:(NSString *)attr_name withValue:(id)value inContext:(NSManagedObjectContext *)context;
@@ -661,7 +658,6 @@ NSRailsSync(*);
 			[self performSelector:setter withObject:decodedObj];
 		}
 	}
-  [self saveContext];
 	return changes;
 }
 
@@ -933,9 +929,6 @@ NSRailsSync(*);
 - (BOOL) remoteUpdate:(NSError **)error
 {
 	BOOL didUpdate = !![self remoteRequest:@"PUT" method:nil error:error];
-  if (*error == nil) {
-    [self saveContext];
-  }
   return didUpdate;
 }
 
@@ -944,9 +937,6 @@ NSRailsSync(*);
 	[self remoteRequest:@"PUT" method:nil async:
 	 
 	 ^(NSString *result, NSError *error) {
-     if (error == nil) {
-       [self saveContext];
-     }
 		 completionBlock(error);
 	 }];
 }
@@ -958,7 +948,6 @@ NSRailsSync(*);
 	BOOL didDestroy = !![self remoteRequest:@"DELETE" method:nil body:nil error:error];
   if (*error == nil) {
     [self.managedObjectContext deleteObject:self];
-    [self saveContext];
   }
   return didDestroy;
 }
@@ -970,7 +959,6 @@ NSRailsSync(*);
 	{
     if (error == nil) {
       [self.managedObjectContext deleteObject:self];
-      [self saveContext];
     }
 		completionBlock(error);
 	}];
@@ -989,7 +977,6 @@ NSRailsSync(*);
 	if (changesPtr)
 		*changesPtr = changes;
 	
-  [self saveContext];
 	return YES;
 }
 
@@ -1006,8 +993,7 @@ NSRailsSync(*);
 		 BOOL change = NO;
 		 if (result)
 			change = [self setPropertiesUsingRemoteJSON:result];
-     
-     [self saveContext];
+  
      
 		 completionBlock(change, error);
 	 }];
@@ -1146,7 +1132,6 @@ NSRailsSync(*);
   NSRailsManagedObject *obj = [[self class] findFirstObjectByAttribute:attribute_name withValue:value inContext:ctx];
   if (obj == nil) {
     obj = [NSEntityDescription insertNewObjectForEntityForName:NSStringFromClass([self class]) inManagedObjectContext:ctx];
-    [self saveContext];
   }
   obj.remoteID = value;
   return obj;
@@ -1179,48 +1164,6 @@ NSRailsSync(*);
 
 + (void)setManagedObjectContext:(NSManagedObjectContext *)context {
   _context = context;
-}
-
-+ (void)saveContext {
-  dispatch_async(dispatch_get_main_queue(), ^{
-    NSManagedObjectContext *ctx = _context;
-    @try {
-      [ctx performBlockAndWait:^{
-        NSError *error = nil;
-        if (![ctx save:&error]) {
-          NSLog(@"NSRailsManagedObject class %@: failed to save core data with error: %@", NSStringFromClass([self class]), [error localizedDescription]);
-        } else {
-          NSLog(@"NSRailsManagedObject class %@: successfully saved core data!", NSStringFromClass([self class]));
-        }
-      }];
-    }
-    @catch (NSException *exception) {
-      NSLog(@"NSRailsManagedObject class %@ triggered an exception when trying to save core data: %@", NSStringFromClass([self class]), [exception reason]);
-    }
-    @finally {
-      
-    }
-  });
-    [[NSNotificationCenter defaultCenter] postNotificationName:NSRailsSaveCoreDataNotification object:nil];
-}
-
-- (void)saveContext {
-  dispatch_async(dispatch_get_main_queue(), ^{
-    @try {
-        NSError *error = nil;
-        if (![self.managedObjectContext save:&error]) {
-          NSLog(@"NSRailsManagedObject instance %@: failed to save core data with error: %@", NSStringFromClass([self class]), [error localizedDescription]);
-        } else {
-//          NSLog(@"NSRailsManagedObject instance %@: successfully saved core data!", NSStringFromClass([self class]));
-        }
-    }
-    @catch (NSException *exception) {
-      NSLog(@"NSRailsManagedObject instance (%@) triggered an exception when trying to save core data: %@", NSStringFromClass([self class]), [exception reason]);
-    }
-    @finally {
-    }
-  });
-  [[NSNotificationCenter defaultCenter] postNotificationName:NSRailsSaveCoreDataNotification object:nil];
 }
 
 - (void)awakeFromFetch {
