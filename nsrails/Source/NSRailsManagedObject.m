@@ -38,7 +38,8 @@
 #import "NSData+Additions.h"
 #import "NSObject+Properties.h"
 #import "SBJson.h"
-#import <objc/objc-runtime.h>
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 /* 
     If this file is too intimidating, 
@@ -535,13 +536,43 @@ NSRailsSync(*);
 								NSUInteger idx = [previousVal indexOfObjectPassingTest:
 												  ^BOOL(NSRailsManagedObject *obj, NSUInteger idx, BOOL *stop) 
 												  {
-													  if ([obj.remoteID isEqualToNumber:[railsElement objectForKey:@"id"]])
-													  {
-														  if (stop)
-															  *stop = YES;
-														  return YES;
-													  }
-													  return NO;
+                            @try {
+                              if ([obj.remoteID isEqualToNumber:[railsElement objectForKey:@"id"]])
+                              {
+                                if (stop)
+                                  *stop = YES;
+                                return YES;
+                              }
+                              return NO;
+                            }
+                            @catch (NSException *exception) {
+                              @try {
+                                Class objectClass = [obj class];
+                                NSString *pKey = [objectClass primaryKeyAttributeName];
+                                NSString *className = NSStringFromClass(objectClass).lowercaseString;
+                                NSString *keyPath = [className stringByAppendingFormat:@".%@", pKey];
+                                if ([obj.remoteID isEqualToNumber:[railsElement valueForKeyPath:keyPath]]) {
+                                  if (stop) {
+                                    *stop = YES;
+                                    return YES;
+                                  }
+                                  return NO;
+                                }
+                              }
+                              @catch (NSException *exception) {
+                                if (stop) {
+                                  *stop = YES;
+                                  return NO;
+                                }
+                                return NO;
+                              }
+                              @finally {
+                                
+                              }
+
+                            }
+                            @finally { 
+                            }
 												  }];
 								
 								if (!previousVal || idx == NSNotFound)
