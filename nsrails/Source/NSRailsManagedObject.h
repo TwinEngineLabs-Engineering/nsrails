@@ -626,14 +626,6 @@ static NSString *NSRailsSaveCoreDataNotification = @"should_save_core_data";
  @param context The desired managed object context.
  */
 + (void)setManagedObjectContext:(NSManagedObjectContext *)context;
-/**
- This method will save the statically set managed object context. It also broadcasts the NSNotification named in the NSRailsSaveCoreDataNotification constant, so if thread-specific object contexts are used, responding to this notification will allow the object context for the current thread to be saved (such as when using MagicalRecord to initialize the Core Data stack).
- */
-+ (void)saveContext;
-/**
- This method will save the object context of the receiver. It also broadcasts the NSNotification named in the NSRailsSaveCoreDataNotification constant, so if thread-specific object contexts are used, responding to this notification will allow the object context for the current thread to be saved (such as when using MagicalRecord to initialize the Core Data stack).
- */
-- (void)saveContext;
 
 + (NSString *) routeForControllerMethod:(NSString *)customRESTMethod;
 + (NSArray *) arrayOfModelsFromJSON:(NSString *)json error:(NSError **)error;
