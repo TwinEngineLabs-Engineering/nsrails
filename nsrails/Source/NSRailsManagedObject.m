@@ -333,7 +333,8 @@ NSRailsSync(*);
           [property.nestedClass isEqualToString:[self.class description]])
       {
         SEL setter = [[model class] setterForProperty:property.name];
-        [model performSelector:setter withObject:self];
+        if ([model respondsToSelector:setter])
+          [model performSelector:setter withObject:self];
       }
     }
     
@@ -385,7 +386,7 @@ NSRailsSync(*);
 	}
 	else
 	{
-		id val = [self performSelector:getter];
+		id val = ([self respondsToSelector:getter] ? [self performSelector:getter] : nil);
 		BOOL isArray = [val isKindOfClass:[NSArray class]];
 		
 		if (prop.nestedClass || prop.isHasMany)
@@ -492,7 +493,7 @@ NSRailsSync(*);
 			SEL getter = [[self class] getterForProperty:property.name];
 			SEL setter = [[self class] setterForProperty:property.name];
 			
-			id previousVal = [self performSelector:getter];
+			id previousVal = ([self respondsToSelector:getter] ? [self performSelector:getter] : nil);
 			
 			SEL customDecode = NULL;
 			if (property.decodable)
@@ -654,8 +655,8 @@ NSRailsSync(*);
 				changes = YES;
 			}
 			
-			
-			[self performSelector:setter withObject:decodedObj];
+			if ([self respondsToSelector:setter])
+        [self performSelector:setter withObject:decodedObj];
 		}
 	}
 	return changes;
