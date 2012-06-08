@@ -325,7 +325,7 @@ NSRailsSync(*);
     NSString *parentModelName = [[self class] masterModelName];
     NSArray *properties = [[model propertyCollection] objcPropertiesForRemoteEquivalent:parentModelName 
                                                                             autoinflect:[self getRelevantConfig].autoinflectsPropertyNames];
-    
+#pragma mark - PROBLEM MIGHT BE HERE    
     for (NSRProperty *property in properties)
     {
       //only assign me to the child if it has me defined as a property and it's marked as nested to me
@@ -515,27 +515,23 @@ NSRailsSync(*);
 				if (railsObject)
 				{
 					if ([railsObject isKindOfClass:[NSArray class]])
-					{
-						if (![railsObject isKindOfClass:[NSArray class]])
-							[NSException raise:NSRailsInternalError format:@"Attempt to set property '%@' in class '%@' (declared as has-many) to a non-array non-null value ('%@').", property, self.class, railsObject];
-						
+					{	
 						//array of NSRailsModels is tricky, we need to go through each existing element, see if it needs an update (or delete), and then add any new ones
 						
-						NSMutableArray *newArray = [[NSMutableArray alloc] init];
+            NSMutableOrderedSet *orderedSet = [self valueForKey:[property name]];
+						NSMutableArray *newArray = (orderedSet == nil ? [NSMutableArray new] : [[orderedSet array] mutableCopy]);
 						
 						for (id railsElement in railsObject)
 						{
 							id decodedElement;
+              
+              NSLog(@"Name of embedded %@", railsElement);
 							
 							//array of NSDates
 							if ([property.nestedClass isEqualToString:@"NSDate"])
 							{
 								decodedElement = [self nsrails_decodeDate:railsElement];
-							}
-							
-							//otherwise, array of nested classes (NSRailsModels)
-							else
-							{
+							} else {
 								//see if there's a nester that matches this ID - we'd just have to update it w/this dict
 								NSUInteger idx = [previousVal indexOfObjectPassingTest:
 												  ^BOOL(NSRailsManagedObject *obj, NSUInteger idx, BOOL *stop) 
@@ -583,14 +579,31 @@ NSRailsSync(*);
 								{
 									//didn't previously exist - make a new one
                   property.nestedClass = [[[railsElement allKeys] objectAtIndex:0] capitalizedString];
-									decodedElement = [self makeRelevantModelFromClass:property.nestedClass basedOn:railsElement];
+//									decodedElement = [self makeRelevantModelFromClass:property.nestedClass basedOn:railsElement];
+                  NSString *propertyName = [NSClassFromString([property nestedClass]) primaryKeyAttributeName];
+                  NSString *keyPath = [NSString stringWithFormat:@"%@.%@", [[property nestedClass] lowercaseString], propertyName];
+                  
+                  
+                  decodedElement = [NSClassFromString([property nestedClass]) findExistingModelWithPrimaryKeyAttributeValue:[railsElement valueForKeyPath:keyPath]];
+                  
 									
 									changes = YES;
 								}
 								else
 								{
 									//existed - simply update that one (recursively)
-									decodedElement = [previousVal objectAtIndex:idx];
+//									decodedElement = [previousVal objectAtIndex:idx];
+                  NSString *propertyName = [NSClassFromString([property nestedClass]) primaryKeyAttributeName];
+                  NSString *keyPath = [NSString stringWithFormat:@"%@.%@", [[property nestedClass] lowercaseString], propertyName];
+                  
+                  NSPredicate *findPredicate = [NSPredicate predicateWithFormat:@"%K == %@", propertyName, [railsElement valueForKeyPath:keyPath]];
+                  NSArray *filtered = [newArray filteredArrayUsingPredicate:findPredicate];
+                  if (filtered.count > 0) {
+                    decodedElement = [filtered objectAtIndex:0];
+                  } else {
+                    decodedElement = [NSClassFromString([property nestedClass]) findExistingModelWithPrimaryKeyAttributeValue:[railsElement valueForKeyPath:keyPath]];
+                  }
+                  
 									BOOL neededChange = [decodedElement setPropertiesUsingRemoteDictionary:railsElement];
 									
 									if (neededChange)
@@ -599,7 +612,12 @@ NSRailsSync(*);
 							}
 							
               if (decodedElement != nil) {
-                [newArray addObject:decodedElement];
+                NSString *decodedElementPrimaryKey = [[decodedElement class] primaryKeyAttributeName];
+                NSPredicate *containsElementPredicate = [NSPredicate predicateWithFormat:@"%K == %@", decodedElementPrimaryKey, [decodedElement valueForKey:decodedElementPrimaryKey]];
+                NSArray *filtered = [newArray filteredArrayUsingPredicate:containsElementPredicate];
+                if (filtered.count == 0) {
+                  [newArray addObject:decodedElement];
+                }
               }
 						}
             NSMutableOrderedSet *s = [NSMutableOrderedSet orderedSetWithArray:newArray];
