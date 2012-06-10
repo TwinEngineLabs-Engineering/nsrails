@@ -516,38 +516,30 @@ NSRailsSync(*);
 				{
 					if ([railsObject isKindOfClass:[NSArray class]])
 					{
-						if (![railsObject isKindOfClass:[NSArray class]])
-							[NSException raise:NSRailsInternalError format:@"Attempt to set property '%@' in class '%@' (declared as has-many) to a non-array non-null value ('%@').", property, self.class, railsObject];
+//						if (![railsObject isKindOfClass:[NSArray class]])
+//							[NSException raise:NSRailsInternalError format:@"Attempt to set property '%@' in class '%@' (declared as has-many) to a non-array non-null value ('%@').", property, self.class, railsObject];
 						
 						//array of NSRailsModels is tricky, we need to go through each existing element, see if it needs an update (or delete), and then add any new ones
 						
 						NSMutableArray *newArray = [[NSMutableArray alloc] init];
 						
-						for (id railsElement in railsObject)
-						{
+						for (id railsElement in railsObject) {
 							id decodedElement;
 							
 							//array of NSDates
 							if ([property.nestedClass isEqualToString:@"NSDate"])
 							{
 								decodedElement = [self nsrails_decodeDate:railsElement];
-							}
-							
-							//otherwise, array of nested classes (NSRailsModels)
-							else
-							{
+							} else {
 								//see if there's a nester that matches this ID - we'd just have to update it w/this dict
 								NSUInteger idx = [previousVal indexOfObjectPassingTest:
 												  ^BOOL(NSRailsManagedObject *obj, NSUInteger idx, BOOL *stop) 
 												  {
                             @try {
-                              if ([obj.remoteID isEqualToNumber:[railsElement objectForKey:@"id"]])
-                              {
-                                if (stop)
-                                  *stop = YES;
-                                return YES;
-                              }
-                              return NO;
+                              Class objectClass = [obj class];
+                              NSString *pKey = [objectClass primaryKeyAttributeName];
+                              *stop = [[obj valueForKey:pKey] isEqualToNumber:[railsElement objectForKey:@"id"]];
+                              return *stop;
                             }
                             @catch (NSException *exception) {
                               @try {
@@ -555,19 +547,11 @@ NSRailsSync(*);
                                 NSString *pKey = [objectClass primaryKeyAttributeName];
                                 NSString *className = NSStringFromClass(objectClass).lowercaseString;
                                 NSString *keyPath = [className stringByAppendingFormat:@".%@", pKey];
-                                if ([obj.remoteID isEqualToNumber:[railsElement valueForKeyPath:keyPath]]) {
-                                  if (stop) {
-                                    *stop = YES;
-                                    return YES;
-                                  }
-                                  return NO;
-                                }
+                                *stop = [[obj valueForKey:pKey] isEqualToNumber:[railsElement valueForKeyPath:keyPath]];
+                                return *stop;
                               }
-                              @catch (NSException *exception) {
-                                if (stop) {
-                                  *stop = YES;
-                                  return NO;
-                                }
+                              @catch (NSException *exception) {                                  
+                                *stop = YES;
                                 return NO;
                               }
                               @finally {
