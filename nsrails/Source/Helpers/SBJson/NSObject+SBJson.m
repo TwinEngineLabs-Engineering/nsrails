@@ -35,7 +35,12 @@
 
 - (NSString *)JSONRepresentation {
     SBJsonWriter *writer = [[SBJsonWriter alloc] init];    
-    NSString *json = [writer stringWithObject:self];
+  NSString *json;
+  if ([self isKindOfClass:[NSMutableOrderedSet class]]) {
+    json = [writer stringWithObject:[(NSMutableOrderedSet *)self array]];
+  } else {
+    json = [writer stringWithObject:self]; 
+  }
     if (!json)
         NSLog(@"-JSONRepresentation failed. Error is: %@", writer.error);
     return json;

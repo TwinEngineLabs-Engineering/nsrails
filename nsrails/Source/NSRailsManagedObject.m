@@ -373,6 +373,7 @@ NSRailsSync(*);
 							 [representation isKindOfClass:[NSDictionary class]] ||
 							 [representation isKindOfClass:[NSString class]] ||
 							 [representation isKindOfClass:[NSNumber class]] ||
+               [representation isKindOfClass:[NSMutableOrderedSet class]] ||
 							 [representation isKindOfClass:[NSNull class]]);
 		
 		//make sure that the result is a JSON parsable
@@ -387,7 +388,7 @@ NSRailsSync(*);
 	else
 	{
 		id val = ([self respondsToSelector:getter] ? [self performSelector:getter] : nil);
-		BOOL isArray = [val isKindOfClass:[NSArray class]];
+		BOOL isArray = [val isKindOfClass:[NSArray class]] || [val isKindOfClass:[NSMutableOrderedSet class]];
 		
 		if (prop.nestedClass || prop.isHasMany)
 		{
@@ -425,7 +426,30 @@ NSRailsSync(*);
 			
 			//have to make it shallow so we don't loop infinitely (if that model defines us as an assc)
 			return [val dictionaryOfRemotePropertiesShallow:YES];
-		}
+		} else if ([val isKindOfClass:[NSMutableOrderedSet class]]) {
+      NSMutableArray *newArray = [NSMutableArray arrayWithCapacity:[val count]];
+      for (id obj in val) {
+        
+        id encodedObj = obj;
+        
+        //if it's an NSRailsModel, we can use its dictionaryOfRemoteProperties
+        if ([obj isKindOfClass:[NSRailsManagedObject class]])
+        {
+          //have to make it shallow so we don't loop infinitely (if that model defines us as an assc)
+          encodedObj = [obj dictionaryOfRemotePropertiesShallow:YES];
+        }
+        else if ([obj isKindOfClass:[NSDate class]])
+        {
+          encodedObj = [self nsrails_encodeDate:obj];
+        }
+        
+        [newArray addObject:encodedObj];
+      }
+      return newArray;
+    } else if ([val isKindOfClass:[NSRailsManagedObject class]]) {
+      id encodedObj = [val dictionaryOfRemotePropertiesShallow:YES];
+      return encodedObj;
+    }
 				
 		//otherwise, just return the value from the get method
 		return val;
@@ -672,7 +696,7 @@ NSRailsSync(*);
 		
 		id remoteRep = [self remoteRepresentationOfObjectForProperty:objcProperty];
 
-		BOOL null = !remoteRep;
+		BOOL null = !remoteRep; // seems to be returning on the last line "return val" of remoteRepresentationOfObjectForProperty:
 		
 		//if we got back nil, we want to change that to the [NSNull null] object so it'll show up in the JSON
 		//but only do it for non-ID properties - we want to omit ID if it's null (could be for create)
