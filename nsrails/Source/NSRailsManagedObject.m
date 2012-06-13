@@ -575,8 +575,21 @@ NSRailsSync(*);
                                 return *stop;
                               }
                               @catch (NSException *exception) {                                  
-                                *stop = YES;
-                                return NO;
+                                @try {
+                                  Class nester = NSClassFromString(property.nestedClass);
+                                  NSString *pKey = [nester primaryKeyAttributeName];
+                                  NSString *className = [[railsElement allKeys] objectAtIndex:0];
+                                  NSString *keyPath = [className stringByAppendingFormat:@".%@", pKey];
+                                  *stop = [[obj valueForKey:pKey] isEqualToNumber:[railsElement valueForKeyPath:keyPath]];
+                                  return *stop;
+                                }
+                                @catch (NSException *exception) {
+                                  *stop = YES;
+                                  return NO;
+                                }
+                                @finally {
+                                  
+                                }
                               }
                               @finally {
                                 
@@ -590,9 +603,44 @@ NSRailsSync(*);
 								if (!previousVal || idx == NSNotFound)
 								{
 									//didn't previously exist - make a new one
-                  property.nestedClass = [[[railsElement allKeys] objectAtIndex:0] capitalizedString];
-									decodedElement = [self makeRelevantModelFromClass:property.nestedClass basedOn:railsElement];
-									
+                  property.nestedClass = [[[[railsElement allKeys] objectAtIndex:0] capitalizedString] stringByReplacingOccurrencesOfString:@"_" withString:@""];
+                  
+                  Class nester = NSClassFromString(property.nestedClass);
+                  
+                  NSString *pKey = [nester primaryKeyAttributeName];
+                  NSString *className = [[railsElement allKeys] objectAtIndex:0];
+                  NSString *keyPath = [className stringByAppendingFormat:@".%@", pKey];
+                  NSNumber *primaryKeyValue = nil;
+                  @try {
+                    primaryKeyValue = [railsElement valueForKeyPath:keyPath];
+                  }
+                  @catch (NSException *exception) {
+                    @try {
+                      Class objectClass = [self class];
+                      NSString *pKey = [objectClass primaryKeyAttributeName];
+                      NSString *className = NSStringFromClass(objectClass).lowercaseString;
+                      NSString *keyPath = [className stringByAppendingFormat:@".%@", pKey];
+                      primaryKeyValue = [railsElement valueForKeyPath:keyPath];
+                    }
+                    @catch (NSException *exception) {
+                      primaryKeyValue = [NSNumber numberWithInt:0];
+                    }
+                    @finally {
+                      
+                    }
+
+                  }
+                  @finally {
+                    
+                  }
+
+                  id existing = [nester findFirstObjectByAttribute:pKey withValue:primaryKeyValue inContext:_context];
+                  if (existing && [primaryKeyValue integerValue] > 0) {
+                    decodedElement = existing;
+                  } else {
+                    decodedElement = [self makeRelevantModelFromClass:property.nestedClass basedOn:railsElement];
+                  }
+                  
 									changes = YES;
 								}
 								else
@@ -742,7 +790,7 @@ NSRailsSync(*);
 			//otherwise, if it's associative, use "_attributes" if not "null"
 			else if ((objcProperty.nestedClass || objcProperty.isHasMany) && !null)
 			{
-				railsEquivalent = [railsEquivalent stringByAppendingString:@"_attributes"];
+//				railsEquivalent = [railsEquivalent stringByAppendingString:@"_attributes"];
 			}
 			
 			//check to see if it was already set (ie, ignore it if there are multiple properties pointing to the same rails attr)
