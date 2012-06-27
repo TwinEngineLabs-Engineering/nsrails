@@ -1112,7 +1112,14 @@ NSRailsSync(*);
 	for (NSDictionary *dict in arr)
 	{
     NSString *attr_name = [[self class] primaryKeyAttributeName];
-    NSString *keyPath = [[NSStringFromClass([self class]) lowercaseString] stringByAppendingFormat:@".%@", attr_name];
+    NSArray *keys = [dict allKeys];
+    NSString *className;
+    if (keys.count == 1) {
+      className = [keys objectAtIndex:0];
+    } else {
+      className = [NSStringFromClass([self class]) lowercaseString];
+    }
+    NSString *keyPath = [className stringByAppendingFormat:@".%@", attr_name];
     NSNumber *identifier = [dict valueForKeyPath:keyPath];
     NSRailsManagedObject *obj = [[self class] findExistingModelWithPrimaryKeyAttributeValue:identifier];
     [obj setPropertiesUsingRemoteDictionary:dict];
